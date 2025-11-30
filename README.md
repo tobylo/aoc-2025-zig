@@ -1,6 +1,6 @@
-# Advent Of Code 2024
+# Advent Of Code 2025
 
-Advent Of Code 2024 Solutions in Zig (version 0.13.0)
+Advent Of Code 2024 Solutions in Zig (version 0.15.2)
 
 ## Basic Usage
 
