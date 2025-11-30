@@ -42,7 +42,7 @@ pub fn countScalar(T: anytype, haystack: []const T, value: T) usize {
 /// Split the input by newline chars "\n"
 /// Note: This keeps empty lines
 pub fn lines(input: []const u8) SplitIterator {
-    return std.mem.split(u8, input, "\n");
+    return std.mem.splitSequence(u8, input, "\n");
 }
 
 pub fn lineCount(input: []const u8) usize {

@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     const data = createModule(b, "data", "data/data.zig", target);
     const utils = createModule(b, "utils", "../common/utils.zig", target);
 
-    const exe = b.addExecutable(.{ .name = "dayX", .root_module = b.createModule(.{
+    const exe = b.addExecutable(.{ .name = "day3", .root_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,

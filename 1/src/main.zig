@@ -31,7 +31,7 @@ pub fn main() !void {
 test "part1 test input" {
     log.warn(" -- Running Tests --", .{});
 
-    const answer: usize = 11;
+    const answer: i32 = 11;
 
     const alloc = std.testing.allocator;
     const res = try part1(Data.test_input, alloc);
@@ -40,7 +40,7 @@ test "part1 test input" {
 }
 
 test "part2 test input" {
-    const answer: usize = 31;
+    const answer: i32 = 31;
 
     const alloc = std.testing.allocator;
     const res = try part2(Data.test_input, alloc);
@@ -50,26 +50,28 @@ test "part2 test input" {
 
 // ------------ Part 1 Solution ------------
 
-pub fn part1(input: []const u8, alloc: Allocator) !usize {
-    var col1 = ArrayList(usize).init(alloc);
-    var col2 = ArrayList(usize).init(alloc);
-    defer col1.deinit();
-    defer col2.deinit();
+pub fn part1(input: []const u8, alloc: Allocator) !i32 {
+    var col1: std.ArrayList(i32) = .empty;
+    var col2: std.ArrayList(i32) = .empty;
+    defer col1.deinit(alloc);
+    defer col2.deinit(alloc);
 
     var lines = utils.lines(input);
+
     while (lines.next()) |line| {
         if (line.len == 0) break;
-        var iter = std.mem.tokenize(u8, line, " ");
-        const a = try std.fmt.parseInt(usize, iter.next().?, 10);
-        const b = try std.fmt.parseInt(usize, iter.next().?, 10);
-        try col1.append(a);
-        try col2.append(b);
+
+        var iter = std.mem.tokenizeScalar(u8, line, ' ');
+        const a = try std.fmt.parseInt(i32, iter.next().?, 10);
+        const b = try std.fmt.parseInt(i32, iter.next().?, 10);
+        try col1.append(alloc, a);
+        try col2.append(alloc, b);
     }
 
-    utils.heapSortAsc(usize, col1.items);
-    utils.heapSortAsc(usize, col2.items);
+    utils.heapSortAsc(i32, col1.items);
+    utils.heapSortAsc(i32, col2.items);
 
-    var sum: usize = 0;
+    var sum: i32 = 0;
     for (col1.items, 0..) |a, i| {
         const b = col2.items[i];
         sum += @max(a, b) - @min(a, b);
@@ -80,19 +82,20 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
 // ------------ Part 2 Solution ------------
 
 pub fn part2(input: []const u8, alloc: Allocator) !usize {
-    var col1 = ArrayList(usize).init(alloc);
-    var col2 = ArrayList(usize).init(alloc);
-    defer col1.deinit();
-    defer col2.deinit();
+    var col1: std.ArrayList(usize) = .empty;
+    var col2: std.ArrayList(usize) = .empty;
+    defer col1.deinit(alloc);
+    defer col2.deinit(alloc);
 
     var lines = utils.lines(input);
     while (lines.next()) |line| {
         if (line.len == 0) break;
-        var iter = std.mem.tokenize(u8, line, " ");
+
+        var iter = std.mem.tokenizeScalar(u8, line, ' ');
         const a = try std.fmt.parseInt(usize, iter.next().?, 10);
         const b = try std.fmt.parseInt(usize, iter.next().?, 10);
-        try col1.append(a);
-        try col2.append(b);
+        try col1.append(alloc, a);
+        try col2.append(alloc, b);
     }
 
     utils.heapSortAsc(usize, col1.items);

@@ -12,16 +12,14 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
 
-    // Create Modules for our boilerplate code for easier import
-    const data = createModule(b, "data", "data/data.zig");
-    const utils = createModule(b, "utils", "../common/utils.zig");
+    const data = createModule(b, "data", "data/data.zig", target);
+    const utils = createModule(b, "utils", "../common/utils.zig", target);
 
-    const exe = b.addExecutable(.{
-        .name = "day1",
+    const exe = b.addExecutable(.{ .name = "day1", .root_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
-        .optimize = .ReleaseSafe, // Just set ReleaseSafe; not much use in Debug
         .target = target,
-    });
+        .optimize = optimize,
+    }) });
     exe.root_module.addImport(data.name, data.module);
     exe.root_module.addImport(utils.name, utils.module);
     b.installArtifact(exe);
@@ -36,14 +34,15 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     var modules: [2]Module = [_]Module{ data, utils };
-    addTest(b, "test", "Run unit tests", "src/main.zig", optimize, &modules);
+    const root_module: *std.Build.Module = exe.root_module;
+    addTest(b, "test", "Run unit tests", root_module, &modules);
 }
 
 /// Create a new ModuleDependency
-fn createModule(b: *std.Build, name: []const u8, source_file: []const u8) Module {
+fn createModule(b: *std.Build, name: []const u8, source_file: []const u8, target: std.Build.ResolvedTarget) Module {
     return Module{
         .name = name,
-        .module = b.createModule(.{ .root_source_file = b.path(source_file) }),
+        .module = b.addModule(name, .{ .root_source_file = b.path(source_file), .target = target }),
     };
 }
 
@@ -54,10 +53,9 @@ fn createModule(b: *std.Build, name: []const u8, source_file: []const u8) Module
 /// @param[in] description: The description for 'zig build -l'
 /// @param[in] path: The zig file to test
 /// @param[in] optimize: Build optimization settings
-fn addTest(b: *std.Build, cmd: []const u8, description: []const u8, path: []const u8, optimize: std.builtin.Mode, modules: []const Module) void {
+fn addTest(b: *std.Build, cmd: []const u8, description: []const u8, root_module: *std.Build.Module, modules: []const Module) void {
     const test_exe = b.addTest(.{
-        .root_source_file = b.path(path),
-        .optimize = optimize,
+        .root_module = root_module,
     });
     for (modules) |mod| {
         test_exe.root_module.addImport(mod.name, mod.module);
