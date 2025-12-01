@@ -21,7 +21,22 @@ const Direction = enum {
     Right,
 };
 
-const Outcome = struct { position: isize, ticks: usize };
+const Outcome = struct {
+    position: isize,
+    ticks: usize,
+
+    fn init(ticks: usize) Outcome {
+        return Outcome{ .position = undefined, .ticks = ticks };
+    }
+
+    fn increase(self: *Outcome) void {
+        self.ticks += 1;
+    }
+
+    fn setPosition(self: *Outcome, position: isize) void {
+        self.position = position;
+    }
+};
 
 pub fn main() !void {
     var gpa = GPA(.{}){};
@@ -141,32 +156,27 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
 
 fn countTicks(start_value: isize, direction: Direction, value: isize) Outcome {
     log.debug("start value: {d}, direction: {any}, value: {d}", .{ start_value, direction, value });
-    //var direction_switch = false;
+    var result = Outcome.init(@abs(@divFloor(value, 100)));
     switch (direction) {
         .Left => {
-            var auto_tick = @divFloor(value, 100);
-            log.debug("auto_tick_pre: {d}", .{auto_tick});
-
             const endPos = @mod(start_value - value, 100);
             if (endPos == 0 or (start_value != 0 and endPos > start_value)) {
-                auto_tick += 1;
+                result.increase();
+                log.debug("tick: 1", .{});
             }
-            log.debug("auto_tick_post: {d}", .{auto_tick});
-            const result = @mod(start_value - value, 100);
-            return .{ .position = @mod(result, 100), .ticks = @abs(auto_tick) };
+            result.setPosition(@mod(start_value - value, 100));
         },
         .Right => {
-            var auto_tick = @divFloor(value, 100);
-            log.debug("auto_tick: {d}", .{auto_tick});
             const endPos = @mod(start_value + value, 100);
             if (endPos == 0 or (start_value != 0 and endPos < start_value)) {
-                auto_tick += 1;
+                result.increase();
+                log.debug("tick: 1", .{});
             }
-            log.debug("auto_tick_post: {d}", .{auto_tick});
-            const result = @mod(start_value + value, 100);
-            return .{ .position = @mod(result, 100), .ticks = @abs(auto_tick) };
+            result.setPosition(@mod(start_value + value, 100));
         },
     }
+
+    return result;
 }
 
 // ------------ Common Functions ------------
