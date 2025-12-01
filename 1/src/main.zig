@@ -159,20 +159,18 @@ fn countTicks(start_value: isize, direction: Direction, value: isize) Outcome {
     var result = Outcome.init(@abs(@divFloor(value, 100)));
     switch (direction) {
         .Left => {
-            const endPos = @mod(start_value - value, 100);
-            if (endPos == 0 or (start_value != 0 and endPos > start_value)) {
+            result.setPosition(@mod(start_value - value, 100));
+            if (result.position == 0 or (start_value != 0 and result.position > start_value)) {
                 result.increase();
                 log.debug("tick: 1", .{});
             }
-            result.setPosition(@mod(start_value - value, 100));
         },
         .Right => {
-            const endPos = @mod(start_value + value, 100);
-            if (endPos == 0 or (start_value != 0 and endPos < start_value)) {
+            result.setPosition(@mod(start_value + value, 100));
+            if (result.position == 0 or (start_value != 0 and result.position < start_value)) {
                 result.increase();
                 log.debug("tick: 1", .{});
             }
-            result.setPosition(@mod(start_value + value, 100));
         },
     }
 
