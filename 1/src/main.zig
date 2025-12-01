@@ -134,21 +134,16 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
         const direction = line[0];
         const amount = try std.fmt.parseInt(isize, line[1..], 10);
 
-        switch (direction) {
-            'L' => {
-                const result = countTicks(current, .Left, amount);
-                log.debug("{any}", .{result});
-                current = result.position;
-                count += result.ticks;
-            },
-            'R' => {
-                const result = countTicks(current, .Right, amount);
-                log.debug("{any}", .{result});
-                current = result.position;
-                count += result.ticks;
-            },
+        var d: Direction = undefined;
+        d = switch (direction) {
+            'L' => .Left,
+            'R' => .Right,
             else => unreachable,
-        }
+        };
+        const result = countTicks(current, d, amount);
+        log.debug("{any}", .{result});
+        current = result.position;
+        count += result.ticks;
     }
 
     return count;
