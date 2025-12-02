@@ -61,9 +61,7 @@ test "part2 test input" {
 // ------------ Part 1 Solution ------------
 
 pub fn part1(input: []const u8, alloc: Allocator) !usize {
-    var invalidIds: std.ArrayList(usize) = .empty;
-    defer invalidIds.deinit(alloc);
-
+    var result: usize = 0;
     var lines = utils.lines(input);
     while (lines.next()) |line| {
         if (line.len == 0) continue;
@@ -81,26 +79,21 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
             for (first..last + 1) |value| {
                 //log.debug("to parse: {d}", .{value});
                 if (isFakeValuePartOne(value, alloc)) {
-                    try invalidIds.append(alloc, value);
+                    result += value;
                 }
             }
         }
     }
 
-    var sum: usize = 0;
-    while (invalidIds.pop()) |invalid| {
-        log.debug("invalid id: {d}", .{invalid});
-        sum += invalid;
-    }
-    return sum;
+    return result;
 }
 
 // ------------ Part 2 Solution ------------
 
 pub fn part2(input: []const u8, alloc: Allocator) !usize {
-    var invalidIds: std.ArrayList(usize) = .empty;
-    defer invalidIds.deinit(alloc);
+    _ = alloc;
 
+    var sum: usize = 0;
     var lines = utils.lines(input);
     while (lines.next()) |line| {
         if (line.len == 0) continue;
@@ -117,50 +110,51 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
 
             for (first..last + 1) |value| {
                 //log.debug("to parse: {d}", .{value});
-                if (isFakeValue(value, alloc)) {
-                    try invalidIds.append(alloc, value);
+                if (isFakeValue(value)) {
+                    sum += value;
                 }
             }
         }
-    }
-
-    var sum: usize = 0;
-    while (invalidIds.pop()) |invalid| {
-        log.debug("invalid id: {d}", .{invalid});
-        sum += invalid;
     }
     return sum;
 }
 
 // ------------ Common Functions ------------
 fn isFakeValuePartOne(value: usize, alloc: Allocator) bool {
-    const stringified = std.fmt.allocPrint(alloc, "{d}", .{value}) catch unreachable;
-    defer alloc.free(stringified);
+    _ = alloc;
 
-    const first_half = stringified[0 .. stringified.len / 2];
-    const second_half = stringified[(stringified.len / 2)..];
+    var buf: [64]u8 = undefined;
+    const stringified = std.fmt.bufPrint(&buf, "{d}", .{value}) catch unreachable;
+
+    if (stringified.len % 2 != 0) return false;
+
+    const mid = stringified.len / 2;
+    const first_half = stringified[0..mid];
+    const second_half = stringified[mid..];
     log.debug("comparing {s} agaings {s}", .{ first_half, second_half });
     return std.mem.eql(u8, first_half, second_half);
 }
 
-fn isFakeValue(value: usize, alloc: Allocator) bool {
-    const stringified = std.fmt.allocPrint(alloc, "{d}", .{value}) catch unreachable;
-    defer alloc.free(stringified);
-    for (0..stringified.len / 2) |i| {
-        var iterator = std.mem.window(u8, stringified, i + 1, i + 1);
+fn isFakeValue(value: usize) bool {
+    var buf: [32]u8 = undefined;
+    const stringified = std.fmt.bufPrint(&buf, "{d}", .{value}) catch unreachable;
+    for (1..stringified.len / 2 + 1) |pattern_len| {
+        if (@mod(stringified.len, pattern_len) != 0) continue;
+
+        var pattern_iterator = std.mem.window(u8, stringified, pattern_len, pattern_len);
+        const target_pattern = pattern_iterator.next().?;
+
+        log.debug("pattern target: {s}", .{target_pattern});
         var pattern_matched = true;
-        const pattern = iterator.next().?;
-        if (@mod(stringified.len, pattern.len) != 0) continue;
-        //log.debug("pattern target: {s}", .{pattern});
-        while (iterator.next()) |next| {
-            // log.debug("comparing {s} against {s}", .{ pattern, next });
-            if (std.mem.eql(u8, next, pattern) == false) {
+        while (pattern_iterator.next()) |next| {
+            log.debug("comparing {s} against {s}", .{ target_pattern, next });
+            if (!std.mem.eql(u8, next, target_pattern)) {
                 pattern_matched = false;
                 break;
             }
         }
         if (pattern_matched) {
-            log.debug("pattern {s} matched for {d}", .{ pattern, value });
+            log.debug("pattern {s} matched for {d}", .{ target_pattern, value });
             return true;
         }
     }
