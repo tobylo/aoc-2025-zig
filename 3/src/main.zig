@@ -91,7 +91,7 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
         if (line.len == 0) continue;
         var string_value: [12]u8 = undefined;
         log.debug("parsing line: {s}", .{line});
-        const result = largestBankCount2(line, 12);
+        const result = largestBankCount(line, 12);
         log.debug("result: {any}", .{result});
 
         var list: std.ArrayList(Cell) = .empty;
@@ -128,7 +128,7 @@ const Cell = struct {
     found: bool,
 
     fn init() Cell {
-        return .{ .value = 0, .index = undefined, .found = false };
+        return .{ .value = 0, .index = 0, .found = false };
     }
 
     fn update(self: *Cell, value: usize, index: usize) void {
@@ -159,89 +159,57 @@ fn largestBank(line: []const u8) struct { largest: Cell, secondLargest: Cell } {
     return .{ .largest = largest, .secondLargest = secondLargest };
 }
 
-fn largestBankCount2(line: []const u8, cell_count: comptime_int) [cell_count]Cell {
-    log.debug("target battery size: {d}", .{cell_count});
-
-    var cells: [cell_count]Cell = undefined;
-    for (&cells) |*cell| {
-        cell.* = Cell.init();
-    }
-
-    log.debug("result array initiated!", .{});
-    var target: i8 = 9;
-    while (target >= 0) {
-        log.debug("looking for target: {d}", .{target});
-        var buf: [1]u8 = undefined;
-        const char = std.fmt.bufPrint(&buf, "{d}", .{target}) catch unreachable;
-        log.debug("target char: {s}", .{char});
-
-        var source_index: isize = @intCast(line.len - 1);
-        while (source_index >= 0) : (source_index -= 1) {
-            log.debug("looking at {c} at index {d}", .{ line[@intCast(source_index)], source_index });
-            if (char[0] == line[@intCast(source_index)]) {
-                var cell_index: isize = @intCast(cell_count - 1);
-                while (cell_index >= 0) : (cell_index -= 1) {
-                    const cell = &cells[@intCast(cell_index)];
-                    if (cell.value < target) {
-                        log.debug("bank value {d} at index {d} is larger than cell index {d} which has value {d}", .{ target, source_index, cell_index, cell.value });
-                        cell.update(@intCast(target), @intCast(source_index));
-                        if (foundCount(&cells) == cell_count) {
-                            log.debug("found all cells!", .{});
-                            return cells;
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-        target -= 1;
-    }
-
-    return cells;
-}
-
 fn largestBankCount(line: []const u8, cell_count: comptime_int) [cell_count]Cell {
-    log.debug("target battery size: {d}", .{cell_count});
+    log.debug("Target battery size: {d}", .{cell_count});
 
     var cells: [cell_count]Cell = undefined;
     for (&cells) |*cell| {
         cell.* = Cell.init();
     }
 
-    std.mem.reverse(u8, line);
-
     log.debug("result array initiated!", .{});
-    var target: i8 = 9;
-    var iterator = std.mem.window(u8, line, 1, 1);
-    while (target >= 0) {
-        log.debug("looking for target: {d}", .{target});
-        iterator.reset();
-        var bank_index: usize = 0;
+
+    var iteration: usize = 0;
+    var window_size: isize = @intCast(cell_count);
+    while (window_size > 0) : (window_size -= 1) {
+        var start_index: usize = 0;
+        if (iteration > 0) {
+            start_index = cells[iteration - 1].index;
+        }
+        const string_left = line[start_index..];
+        log.debug("string left: {s} (len: {d})", .{ string_left, string_left.len });
+
+        const end_pos = string_left.len - @as(usize, @intCast(window_size)) + 1;
+        log.debug("line.len: {d} | line.left: {d} | iteration: {d} | window_size: {d} | end_pos: {d}", .{ line.len, string_left.len, iteration, window_size, end_pos });
+
+        const string_working = string_left[0..end_pos];
+        var token_iterator = std.mem.window(u8, string_working, 1, 1);
+        var target: isize = 9;
         var buf: [1]u8 = undefined;
-        const char = std.fmt.bufPrint(&buf, "{d}", .{target}) catch unreachable;
-        log.debug("target char: {s}", .{char});
-        while (iterator.next()) |slice| {
-            log.debug("looking at {s} at index {d}", .{ slice, bank_index });
-            if (std.mem.eql(u8, char, slice)) {
-                var cell_index: isize = @intCast(cell_count - 1);
-                while (cell_index >= 0) : (cell_index -= 1) {
-                    const cell = &cells[@intCast(cell_index)];
-                    if (cell.value < target and cell.index > bank_index) {
-                        log.debug("bank value {d} at index {d} is larger than cell index {d} which has value {d}", .{ target, bank_index, cell_index, cell.value });
-                        cell.update(@intCast(target), bank_index);
-                        if (foundCount(&cells) == cell_count) {
-                            log.debug("found all cells!", .{});
-                            return cells;
-                        }
-                        break;
-                    }
+
+        while (target >= 0) : (target -= 1) {
+            log.debug("searching for: {d}", .{target});
+            token_iterator.reset();
+            const target_char = std.fmt.bufPrint(&buf, "{d}", .{target}) catch "0";
+            var source_index: usize = start_index + 1;
+            var target_found = false;
+            while (token_iterator.next()) |token| : (source_index += 1) {
+                log.debug("comparing {c} against {c}", .{ token[0], target_char[0] });
+                if (token[0] == target_char[0]) {
+                    log.debug("iteration: {d} | found target {d} at index {d}", .{ iteration, target, source_index });
+                    cells[iteration].update(@intCast(target), @intCast(source_index));
+                    target_found = true;
+                    break;
                 }
             }
-            bank_index += 1;
+            if (target_found) {
+                break;
+            }
         }
-        target -= 1;
-    }
 
+        log.debug("next iteration...", .{});
+        iteration += 1;
+    }
     return cells;
 }
 
