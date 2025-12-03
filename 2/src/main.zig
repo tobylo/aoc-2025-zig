@@ -74,10 +74,10 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
             const first = try std.fmt.parseInt(usize, values.next().?, 10);
             const last = try std.fmt.parseInt(usize, values.next().?, 10);
 
-            //log.debug("range {d} - {d}", .{ first, last });
+            log.debug("range {d} - {d}", .{ first, last });
 
             for (first..last + 1) |value| {
-                //log.debug("to parse: {d}", .{value});
+                log.debug("to parse: {d}", .{value});
                 if (isFakeValuePartOne(value, alloc)) {
                     result += value;
                 }
@@ -109,7 +109,7 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
             log.debug("range {d} - {d}", .{ first, last });
 
             for (first..last + 1) |value| {
-                //log.debug("to parse: {d}", .{value});
+                log.debug("to parse: {d}", .{value});
                 if (isFakeValue(value)) {
                     sum += value;
                 }
