@@ -16,6 +16,11 @@ const ns2sec = utils.ns2sec;
 const log = std.log.scoped(.AoC);
 const print = std.debug.print;
 
+const Result = struct {
+    batteries: usize,
+    jolt: usize,
+};
+
 pub fn main() !void {
     var gpa = GPA(.{}){};
     defer _ = gpa.deinit(); // Performs leak checking
@@ -62,7 +67,12 @@ test "part2 test input" {
 
 pub fn part1(input: []const u8, alloc: Allocator) !usize {
     _ = alloc;
-    _ = input;
+
+    var lines = utils.lines(input);
+    while (lines.next()) |line| {
+        // Process each line here
+    }
+
     return 0;
 }
 
@@ -75,3 +85,25 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
 }
 
 // ------------ Common Functions ------------
+const Cell = struct {
+    value: usize,
+    index: usize,
+};
+fn largestBank(line: []const u8) struct { largest: Cell, secondLargest: Cell } {
+    var largest: Cell = .{ .value = 0, .index = 0 };
+    var secondLargest: Cell = .{ .value = 0, .index = 0 };
+    var index = 0;
+    var iterator = std.mem.window(u8, line, 1, 1);
+    while (iterator.next()) |window| {
+        const value = std.fmt.parseInt(usize, window, 10) catch 0;
+        if (value > largest.value and index != line.len - 1) {
+            secondLargest = largest;
+            largest = .{ .value = value, .index = index };
+        } else if (value > secondLargest.value) {
+            secondLargest = .{ .value = value, .index = index };
+        }
+        index += 1;
+    }
+
+    return .{ .largest = largest, .secondLargest = secondLargest };
+}
