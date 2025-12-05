@@ -122,7 +122,7 @@ fn getNonOverlappingRanges(input: []const u8, alloc: Allocator) !std.ArrayList(R
     var non_overlapping_ranges = try std.ArrayList(Range).initCapacity(alloc, ranges.items.len);
     var current_range = ranges.items[0];
 
-    // Adjust the start of each consecutive ranges to not overlap
+    // Adjust the end of each range to not overlap the next range
     for (ranges.items[1..]) |range| {
         if (range.start > current_range.end + 1) {
             try non_overlapping_ranges.append(alloc, current_range);
