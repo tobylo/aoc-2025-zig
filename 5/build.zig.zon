@@ -1,0 +1,12 @@
+.{
+    .name = ._5,
+    .version = "0.15.2",
+    .dependencies = .{
+        .ziglangSet = .{
+            .url = "git+https://github.com/deckarep/ziglang-set#d63232266deb61c334da8f198e32a3fb51012650",
+            .hash = "ziglangSet-0.0.1-VUjv0hoUAgAxi3Zu4l_6QRnST7KqzKJW9n0FV1WKfweT",
+        },
+    },
+    .paths = .{""},
+    .fingerprint = 0x2a4997475cddbe84,
+}
