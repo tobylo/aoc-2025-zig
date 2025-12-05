@@ -28,9 +28,15 @@ pub fn main() !void {
     log.info("Part 1 answer: << {d} >>", .{res1});
     log.info("Part 1 took {d:.6}s", .{ns2sec(T.lap())});
 
-    const res2 = try part2_less_allocations(Data.input, alloc);
+    const res2 = try part2_stack_allocations(Data.input);
     log.info("Part 2 answer: << {d} >>", .{res2});
     log.info("Part 2 took {d:.6}s", .{ns2sec(T.lap())});
+
+    _ = try part2_less_allocations(Data.input, alloc);
+    log.info("Part 2 with less allocations took {d:.6}s", .{ns2sec(T.lap())});
+
+    _ = try part2_stack_allocations(Data.input);
+    log.info("Part 2 with stack allocations took {d:.6}s", .{ns2sec(T.lap())});
 }
 
 // ------------ Tests ------------
@@ -53,8 +59,8 @@ test "part2 test input" {
 
     const answer: usize = 14;
 
-    const alloc = std.testing.allocator;
-    const res = try part2_less_allocations(Data.test_input, alloc);
+    _ = std.testing.allocator;
+    const res = try part2_stack_allocations(Data.test_input);
     log.warn("[Test] Part 2: {d}", .{res});
     try std.testing.expect(res == answer);
 }
@@ -91,11 +97,25 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
 }
 
 // ------------ Part 2 Solution ------------
+pub fn part2_stack_allocations(input: []const u8) !usize {
+    var parts = std.mem.splitSequence(u8, input, "\n\n");
+    const range_lines = parts.next().?;
+
+    var T = try std.time.Timer.start();
+    const sum = try getRangesStackSum(range_lines);
+    log.info("Part 2 with stack allocations (excl parsing) took {d:.6}ns", .{T.lap()});
+    return sum;
+}
 
 pub fn part2_less_allocations(input: []const u8, alloc: Allocator) !usize {
     var parts = std.mem.splitSequence(u8, input, "\n\n");
     const range_lines = parts.next().?;
-    return getRangeSum(range_lines, alloc);
+
+    var T = try std.time.Timer.start();
+    const res = try getRangeSum(range_lines, alloc);
+
+    log.info("Part 2 with less allocations (excl parsing) took {d:.6}ns", .{T.lap()});
+    return res;
 }
 
 pub fn part2(input: []const u8, alloc: Allocator) !usize {
@@ -115,7 +135,7 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
 }
 
 // ------------ Common Functions ------------
-//
+
 fn getRangeSum(input: []const u8, alloc: Allocator) !usize {
     var ranges = try getRanges(input, alloc);
     defer ranges.deinit(alloc);
@@ -130,6 +150,43 @@ fn getRangeSum(input: []const u8, alloc: Allocator) !usize {
     var current_range = ranges.items[0];
     // if the ranges overlap, merge them
     for (ranges.items[1..]) |range| {
+        if (range.start > current_range.end + 1) {
+            sum += current_range.end - current_range.start + 1;
+            current_range = range;
+        } else {
+            current_range.end = @max(current_range.end, range.end);
+        }
+    }
+    sum += current_range.end - current_range.start + 1;
+    return sum;
+}
+
+fn getRangesStackSum(input: []const u8) !usize {
+    var lines = utils.lines(input);
+
+    var ranges_buffer: [2048]Range = undefined;
+    var range_count: usize = 0;
+
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        var parts = utils.split(line, "-");
+        const start = try std.fmt.parseUnsigned(usize, parts.next().?, 10);
+        const end = try std.fmt.parseUnsigned(usize, parts.next().?, 10);
+        const range_item = Range.init(start, end);
+        ranges_buffer[range_count] = range_item;
+        range_count += 1;
+    }
+
+    std.mem.sort(Range, ranges_buffer[0..range_count], {}, struct {
+        fn lessThan(_: void, a: Range, b: Range) bool {
+            return a.start < b.start;
+        }
+    }.lessThan);
+
+    var sum: usize = 0;
+    var current_range = ranges_buffer[0];
+    // if the ranges overlap, merge them
+    for (ranges_buffer[1..range_count]) |range| {
         if (range.start > current_range.end + 1) {
             sum += current_range.end - current_range.start + 1;
             current_range = range;
@@ -175,8 +232,8 @@ fn getRanges(input: []const u8, alloc: Allocator) !std.ArrayList(Range) {
     while (lines.next()) |line| {
         if (line.len == 0) continue;
         var parts = utils.split(line, "-");
-        const start = try std.fmt.parseInt(usize, parts.next().?, 10);
-        const end = try std.fmt.parseInt(usize, parts.next().?, 10);
+        const start = try std.fmt.parseUnsigned(usize, parts.next().?, 10);
+        const end = try std.fmt.parseUnsigned(usize, parts.next().?, 10);
         const range_item = Range.init(start, end);
         try ranges.append(alloc, range_item);
         log.debug("range: {any}", .{range_item});
