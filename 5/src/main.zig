@@ -28,7 +28,7 @@ pub fn main() !void {
     log.info("Part 1 answer: << {d} >>", .{res1});
     log.info("Part 1 took {d:.6}s", .{ns2sec(T.lap())});
 
-    const res2 = try part2(Data.input, alloc);
+    const res2 = try part2_less_allocations(Data.input, alloc);
     log.info("Part 2 answer: << {d} >>", .{res2});
     log.info("Part 2 took {d:.6}s", .{ns2sec(T.lap())});
 }
@@ -54,7 +54,7 @@ test "part2 test input" {
     const answer: usize = 14;
 
     const alloc = std.testing.allocator;
-    const res = try part2(Data.test_input, alloc);
+    const res = try part2_less_allocations(Data.test_input, alloc);
     log.warn("[Test] Part 2: {d}", .{res});
     try std.testing.expect(res == answer);
 }
@@ -92,6 +92,12 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
 
 // ------------ Part 2 Solution ------------
 
+pub fn part2_less_allocations(input: []const u8, alloc: Allocator) !usize {
+    var parts = std.mem.splitSequence(u8, input, "\n\n");
+    const range_lines = parts.next().?;
+    return getRangeSum(range_lines, alloc);
+}
+
 pub fn part2(input: []const u8, alloc: Allocator) !usize {
     var parts = std.mem.splitSequence(u8, input, "\n\n");
     const range_lines = parts.next().?;
@@ -109,6 +115,32 @@ pub fn part2(input: []const u8, alloc: Allocator) !usize {
 }
 
 // ------------ Common Functions ------------
+//
+fn getRangeSum(input: []const u8, alloc: Allocator) !usize {
+    var ranges = try getRanges(input, alloc);
+    defer ranges.deinit(alloc);
+
+    std.mem.sort(Range, ranges.items, {}, struct {
+        fn lessThan(_: void, a: Range, b: Range) bool {
+            return a.start < b.start;
+        }
+    }.lessThan);
+
+    var sum: usize = 0;
+    var current_range = ranges.items[0];
+    // if the ranges overlap, merge them
+    for (ranges.items[1..]) |range| {
+        if (range.start > current_range.end + 1) {
+            sum += current_range.end - current_range.start + 1;
+            current_range = range;
+        } else {
+            current_range.end = @max(current_range.end, range.end);
+        }
+    }
+    sum += current_range.end - current_range.start + 1;
+    return sum;
+}
+
 fn getNonOverlappingRanges(input: []const u8, alloc: Allocator) !std.ArrayList(Range) {
     var ranges = try getRanges(input, alloc);
     defer ranges.deinit(alloc);
