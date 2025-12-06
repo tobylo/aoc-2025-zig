@@ -99,6 +99,7 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
             if (col_idx >= row.items.len) continue;
 
             const num = try std.fmt.parseUnsigned(usize, row.items[col_idx], 10);
+            //const num = @as([]u8, row.items[col_idx]) - '0';
             log.debug("column {d}, row {d}: number = {d}", .{ col_idx, row_idx, num });
 
             if (row_idx == 0) {
@@ -236,6 +237,9 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
 
     var operator: ?Operator = null;
 
+    var digits = try ArrayList(u8).initCapacity(alloc, lines_count);
+    defer digits.deinit(alloc);
+
     while (col_index > 0) {
         // avoid having to deal with usize/isize casting and since col_index starts at max_len
         col_index -= 1;
@@ -254,7 +258,7 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
 
             if (operator != null and values.items.len > 0) {
                 log.debug("problem parsed! {d} problems with operator {any}", .{ values.items.len, operator.? });
-                try problems.addProblem(alloc, Problem{
+                problems.addProblem(Problem{
                     .values = try values.toOwnedSlice(alloc),
                     .operator = operator.?,
                 });
@@ -264,15 +268,12 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
             continue;
         }
 
-        var digits = try ArrayList(u8).initCapacity(alloc, lines_count);
-        defer digits.deinit(alloc);
-
         for (lines.items) |line| {
             if (col_index >= line.len) continue;
 
             if (std.ascii.isDigit(line[col_index])) {
                 log.debug("found digit {c} in col {d} / line {any}", .{ line[col_index], col_index, line });
-                _ = try digits.append(alloc, line[col_index]);
+                digits.appendAssumeCapacity(line[col_index]);
             } else if (line[col_index] == '*') {
                 operator = .multiply;
             } else if (line[col_index] == '+') {
@@ -295,7 +296,7 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
 
     if (operator != null and values.items.len > 0) {
         log.debug("problem parsed! {d} problems with operator {any}", .{ values.items.len, operator.? });
-        try problems.addProblem(alloc, Problem{
+        problems.addProblem(Problem{
             .values = try values.toOwnedSlice(alloc),
             .operator = operator.?,
         });
@@ -355,8 +356,8 @@ pub const CephalopodProblems = struct {
         self.problems.deinit(alloc);
     }
 
-    pub fn addProblem(self: *CephalopodProblems, alloc: Allocator, problem: Problem) !void {
-        try self.problems.append(alloc, problem);
+    pub fn addProblem(self: *CephalopodProblems, problem: Problem) void {
+        self.problems.appendAssumeCapacity(problem);
     }
 
     pub fn solve(self: CephalopodProblems) usize {
