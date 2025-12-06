@@ -37,6 +37,9 @@ pub fn main() !void {
 
     _ = try part2_stack_allocations(Data.input);
     log.info("Part 2 with stack allocations took {d:.6}s", .{ns2sec(T.lap())});
+
+    _ = try part2_stack_allocations_optimized(Data.input);
+    log.info("Part 2 with stack allocations optimized took {d:.6}s", .{ns2sec(T.lap())});
 }
 
 // ------------ Tests ------------
@@ -97,6 +100,17 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
 }
 
 // ------------ Part 2 Solution ------------
+
+pub fn part2_stack_allocations_optimized(input: []const u8) !usize {
+    var parts = std.mem.splitSequence(u8, input, "\n\n");
+    const range_lines = parts.next().?;
+
+    var T = try std.time.Timer.start();
+    const sum = try getRangesStackSumOptimized(range_lines);
+    log.info("Part 2 with stack allocations optimized (excl parsing) took {d:.6}ns", .{T.lap()});
+    return sum;
+}
+
 pub fn part2_stack_allocations(input: []const u8) !usize {
     var parts = std.mem.splitSequence(u8, input, "\n\n");
     const range_lines = parts.next().?;
@@ -186,6 +200,55 @@ fn getRangesStackSum(input: []const u8) !usize {
     var sum: usize = 0;
     var current_range = ranges_buffer[0];
     // if the ranges overlap, merge them
+    for (ranges_buffer[1..range_count]) |range| {
+        if (range.start > current_range.end + 1) {
+            sum += current_range.end - current_range.start + 1;
+            current_range = range;
+        } else {
+            current_range.end = @max(current_range.end, range.end);
+        }
+    }
+    sum += current_range.end - current_range.start + 1;
+    return sum;
+}
+
+fn getRangesStackSumOptimized(input: []const u8) !usize {
+    var ranges_buffer: [2048]Range = undefined;
+    var range_count: usize = 0;
+
+    var i: usize = 0;
+    while (i < input.len) {
+        // Skip whitespace/newlines
+        while (i < input.len and (input[i] == '\n' or input[i] == '\r' or input[i] == ' ')) : (i += 1) {}
+        if (i >= input.len) break;
+
+        // Parse start manually
+        var start: usize = 0;
+        while (i < input.len and input[i] >= '0' and input[i] <= '9') : (i += 1) {
+            start = start * 10 + (input[i] - '0');
+        }
+
+        i += 1; // Skip '-'
+
+        // Parse end manually
+        var end: usize = 0;
+        while (i < input.len and input[i] >= '0' and input[i] <= '9') : (i += 1) {
+            end = end * 10 + (input[i] - '0');
+        }
+
+        ranges_buffer[range_count] = .{ .start = start, .end = end };
+        range_count += 1;
+    }
+
+    // ... rest of the function stays the same
+    std.mem.sort(Range, ranges_buffer[0..range_count], {}, struct {
+        fn lessThan(_: void, a: Range, b: Range) bool {
+            return a.start < b.start;
+        }
+    }.lessThan);
+
+    var sum: usize = 0;
+    var current_range = ranges_buffer[0];
     for (ranges_buffer[1..range_count]) |range| {
         if (range.start > current_range.end + 1) {
             sum += current_range.end - current_range.start + 1;
