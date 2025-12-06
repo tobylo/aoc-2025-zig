@@ -99,7 +99,6 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
             if (col_idx >= row.items.len) continue;
 
             const num = try std.fmt.parseUnsigned(usize, row.items[col_idx], 10);
-            //const num = @as([]u8, row.items[col_idx]) - '0';
             log.debug("column {d}, row {d}: number = {d}", .{ col_idx, row_idx, num });
 
             if (row_idx == 0) {
