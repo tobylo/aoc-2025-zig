@@ -28,7 +28,7 @@ pub fn main() !void {
     log.info("Part 1 answer: << {d} >>", .{res1});
     log.info("Part 1 took {d:.6}s", .{ns2sec(T.lap())});
 
-    const res2 = try part2_stack_allocations(Data.input);
+    const res2 = try part2(Data.input, alloc);
     log.info("Part 2 answer: << {d} >>", .{res2});
     log.info("Part 2 took {d:.6}s", .{ns2sec(T.lap())});
 
@@ -222,7 +222,7 @@ fn getRangesStackSumOptimized(input: []const u8) !usize {
         while (i < input.len and (input[i] == '\n' or input[i] == '\r' or input[i] == ' ')) : (i += 1) {}
         if (i >= input.len) break;
 
-        // Parse start manually
+        // Parse start
         var start: usize = 0;
         while (i < input.len and input[i] >= '0' and input[i] <= '9') : (i += 1) {
             start = start * 10 + (input[i] - '0');
@@ -230,7 +230,7 @@ fn getRangesStackSumOptimized(input: []const u8) !usize {
 
         i += 1; // Skip '-'
 
-        // Parse end manually
+        // Parse end
         var end: usize = 0;
         while (i < input.len and input[i] >= '0' and input[i] <= '9') : (i += 1) {
             end = end * 10 + (input[i] - '0');
@@ -240,7 +240,6 @@ fn getRangesStackSumOptimized(input: []const u8) !usize {
         range_count += 1;
     }
 
-    // ... rest of the function stays the same
     std.mem.sort(Range, ranges_buffer[0..range_count], {}, struct {
         fn lessThan(_: void, a: Range, b: Range) bool {
             return a.start < b.start;
