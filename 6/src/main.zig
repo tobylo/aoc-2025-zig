@@ -123,7 +123,7 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
 
 // ------------ Part 2 Solution ------------
 
-pub fn part2(input: []const u8, alloc: Allocator) !usize {
+pub fn part2_wrong_misread(input: []const u8, alloc: Allocator) !usize {
     var sum: usize = 0;
 
     var rows: ArrayList(ArrayList([]const u8)) = .empty;
@@ -217,11 +217,12 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
         lines.appendAssumeCapacity(line);
     }
 
-    var max_len: usize = 0;
+    // max_line_len will hold the length of the longest line (i.e. col_index + 1)
+    var max_line_len: usize = 0;
     for (lines.items) |line| {
-        max_len = @max(max_len, line.len);
+        max_line_len = @max(max_line_len, line.len);
     }
-    log.debug("max line length: {d}", .{max_len});
+    log.debug("max line length: {d}", .{max_line_len});
 
     const operatorLine = lines.items[lines.items.len - 1];
     const problem_count = std.mem.count(u8, operatorLine, "+") + std.mem.count(u8, operatorLine, "*");
@@ -229,27 +230,27 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
     var problems: CephalopodProblems = try CephalopodProblems.init(alloc, problem_count);
     errdefer problems.deinit(alloc);
 
-    var col: usize = max_len;
+    var col_index: usize = max_line_len;
     var values = try ArrayList(usize).initCapacity(alloc, 10);
     defer values.deinit(alloc);
 
     var operator: ?Operator = null;
 
-    while (col > 0) {
-        // avoid overflow
-        col -= 1;
+    while (col_index > 0) {
+        // avoid having to deal with usize/isize casting and since col_index starts at max_len
+        col_index -= 1;
 
         var is_col_separator = true;
         for (lines.items) |line| {
-            if (col >= line.len) continue;
+            if (col_index >= line.len) continue;
 
-            if (line[col] != ' ') {
+            if (line[col_index] != ' ') {
                 is_col_separator = false;
                 break;
             }
         }
         if (is_col_separator) {
-            log.debug("found separator col: {d}", .{col});
+            log.debug("found separator col: {d}", .{col_index});
 
             if (operator != null and values.items.len > 0) {
                 log.debug("problem parsed! {d} problems with operator {any}", .{ values.items.len, operator.? });
@@ -267,18 +268,18 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
         defer digits.deinit(alloc);
 
         for (lines.items) |line| {
-            if (col >= line.len) continue;
+            if (col_index >= line.len) continue;
 
-            if (std.ascii.isDigit(line[col])) {
-                log.debug("found digit {c} in col {d} / line {any}", .{ line[col], col, line });
-                _ = try digits.append(alloc, line[col]);
-            } else if (line[col] == '*') {
+            if (std.ascii.isDigit(line[col_index])) {
+                log.debug("found digit {c} in col {d} / line {any}", .{ line[col_index], col_index, line });
+                _ = try digits.append(alloc, line[col_index]);
+            } else if (line[col_index] == '*') {
                 operator = .multiply;
-            } else if (line[col] == '+') {
+            } else if (line[col_index] == '+') {
                 operator = .add;
-            } else if (line[col] == ' ' and digits.items.len > 0) {
+            } else if (line[col_index] == ' ' and digits.items.len > 0) {
                 // end of current number
-                log.debug("found empty cell in col {d}, number ended!", .{col});
+                log.debug("found empty cell in col {d}, number ended!", .{col_index});
                 const number = try std.fmt.parseUnsigned(usize, digits.items, 10);
                 _ = try values.append(alloc, number);
                 digits.clearRetainingCapacity();
@@ -286,7 +287,7 @@ pub fn part2_structs(input: []const u8, alloc: Allocator) !CephalopodProblems {
         }
 
         if (digits.items.len > 0) {
-            log.debug("empty cell in col {d}, number ended!", .{col});
+            log.debug("empty cell in col {d}, number ended!", .{col_index});
             const number = try std.fmt.parseUnsigned(usize, digits.items, 10);
             _ = try values.append(alloc, number);
         }
