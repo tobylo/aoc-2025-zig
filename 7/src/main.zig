@@ -61,7 +61,7 @@ test "part2 test input" {
 // ------------ Part 1 Solution ------------
 
 pub fn part1(input: []const u8, alloc: Allocator) !usize {
-    var grid = try parseOptimizedGrid(input, alloc);
+    var grid = try parseGrid(input, alloc);
     defer grid.deinit(alloc);
 
     try grid.markVisited(alloc);
@@ -70,7 +70,7 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
     for (0..grid.height) |y| {
         for (0..grid.width) |x| {
             const cell_idx = y * grid.width + x;
-            if (grid.cells[cell_idx] == '^' and grid.isHit(x, y)) {
+            if (grid.cells[cell_idx] == '^' and grid.isVisited(x, y)) {
                 visited_split_count += 1;
             }
         }
@@ -81,13 +81,14 @@ pub fn part1(input: []const u8, alloc: Allocator) !usize {
 // ------------ Part 2 Solution ------------
 
 pub fn part2(input: []const u8, alloc: Allocator) !usize {
-    var grid = try parseOptimizedGrid(input, alloc);
+    var grid = try parseGrid(input, alloc);
     defer grid.deinit(alloc);
-    return try grid.simulatePaths(alloc);
+    try grid.simulatePaths(alloc);
+    return grid.timeline_count;
 }
 
 // ------------ Common Functions ------------
-fn parseOptimizedGrid(input: []const u8, alloc: Allocator) !Grid {
+fn parseGrid(input: []const u8, alloc: Allocator) !Grid {
     var line_iter = utils.lines(input);
     var line_count: usize = 0;
     var line_len: usize = 0;
@@ -126,7 +127,7 @@ const Grid = struct {
     visited: []u1,
     start_x: usize,
     start_y: usize,
-    timeline_count: usize,
+    timeline_count: u64,
 
     pub fn init(alloc: Allocator, width: usize, height: usize) !Grid {
         const size = width * height;
@@ -150,7 +151,7 @@ const Grid = struct {
         alloc.free(self.visited);
     }
 
-    pub fn isHit(self: *const Grid, x: usize, y: usize) bool {
+    pub fn isVisited(self: *const Grid, x: usize, y: usize) bool {
         if (x >= self.width or y >= self.height) return false;
         return self.visited[y * self.width + x] == 1;
     }
@@ -202,9 +203,8 @@ const Grid = struct {
         }
     }
 
-    // Simulates all paths from the bottom going up
-    // Returns the number of paths reaching the start cell
-    pub fn simulatePaths(self: *Grid, alloc: Allocator) !usize {
+    // Simulates all paths from the bottom going up no matter if they will reach the start cell
+    pub fn simulatePaths(self: *Grid, alloc: Allocator) !void {
         // paths[idx] = number of unique timelines exiting from cell idx going down
         const paths = try alloc.alloc(u64, self.width * self.height);
         defer alloc.free(paths);
@@ -218,13 +218,16 @@ const Grid = struct {
                 const idx = row * self.width + x;
                 const cell = self.cells[idx];
 
-                // value from one row below
+                // path count from cell one row below, if outside of grid, take the value 1
                 const path_value_below: u64 = if (row + 1 >= self.height) 1 else paths[(row + 1) * self.width + x];
 
                 switch (cell) {
                     '.', 'S' => {
                         // empty cells and start take value from one row below
                         paths[idx] = path_value_below;
+                        if (cell == 'S') {
+                            log.debug("{d}:{d}: reached start cell, total paths found: {d}", .{ row, x, path_value_below });
+                        }
                     },
                     '^' => {
                         // splitter: sum paths from left and right branches
@@ -244,6 +247,7 @@ const Grid = struct {
                             right_side_paths = paths[(row + 1) * self.width + (x + 1)];
                         }
                         paths[idx] = left_side_paths + right_side_paths;
+                        log.debug("{d}:{d}: found splitter cell, combining left ({d}) and right ({d}) paths => {d}", .{ row, x, left_side_paths, right_side_paths, paths[idx] });
                     },
                     else => {
                         paths[idx] = path_value_below;
@@ -253,6 +257,6 @@ const Grid = struct {
         }
 
         // Answer is number of paths reaching the start cell
-        return paths[self.start_x];
+        self.timeline_count = paths[self.start_x];
     }
 };
