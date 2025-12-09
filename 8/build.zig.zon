@@ -1,0 +1,12 @@
+.{
+    .name = ._8,
+    .version = "0.15.2",
+    .dependencies = .{
+        .Musubi = .{
+            .url = "git+https://github.com/tobylo/Musubi#e97c3c3a12e5d97a10c3be9773b49779227b3d7f",
+            .hash = "Musubi-1.0.0-WfTFiXRsAgC6R1SWCvfTfKDI_lUFepxp72XKf-Wa_rDc",
+        },
+    },
+    .paths = .{""},
+    .fingerprint = 0x54f8ebfa36c5ef28,
+}

@@ -13,7 +13,7 @@ const ArrayList = std.ArrayList;
 const GPA = std.heap.GeneralPurposeAllocator;
 const ns2sec = utils.ns2sec;
 
-const log = std.log.scoped(.AoC);
+const log = std.log.scoped(.day7);
 const print = std.debug.print;
 
 pub fn main() !void {
